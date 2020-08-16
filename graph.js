@@ -43,6 +43,28 @@ const legend = d3.legendColor()
   .scale(color)
 
 
+// d3.tip() <- because of the d3-tip plugin
+const tip = d3.tip()
+  .attr('class', 'tip card')
+  .html(d => {
+    let content = `
+      <div class="name">
+        ${d.data.name}
+      </div>
+      <div class="cost">
+        Cost: &#x20B9;${d.data.cost}
+      </div>
+      <div class="delete">
+        Click slice to delete
+      </div>
+    `
+    return content
+  })
+
+// this applies all of the shapes created by 'tip' to the graph group
+graph.call(tip)
+
+
 //! update function
 const update = data => {
 
@@ -80,6 +102,18 @@ const update = data => {
     .transition().duration(750)
     .attrTween('d', arcTweenEnter)
   // .merge(paths)
+
+  // add events
+  graph.selectAll('path')
+    .on('mouseover', (d, i, n) => {
+      tip.show(d, n[i])
+      handleMouseOver(d, i, n)
+    })
+    .on('mouseout', (d, i, n) => {
+      tip.hide()
+      handleMouseOut(d, i, n)
+    })
+    .on('click', handleClick)
 }
 
 
@@ -136,4 +170,20 @@ function arcTweenUpdate(d) {
   return function (t) {
     return arcPath(i(t))
   }
+}
+
+// event handlers
+const handleMouseOver = (d, i, n) => {
+  d3.select(n[i]).transition('changeSliceFill').duration(300)
+    .attr('fill', '#fff')
+}
+
+const handleMouseOut = (d, i, n) => {
+  d3.select(n[i]).transition('changeSliceFill').duration(300)
+    .attr('fill', color(d.data.name))
+}
+
+const handleClick = d => {
+  const id = d.data.id
+  db.collection('expenses').doc(id).delete()
 }
